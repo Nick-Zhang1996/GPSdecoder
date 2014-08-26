@@ -19,6 +19,8 @@ void setup() {
     while (!myGPS.isFixed()) {
         
         Serial.println(F("GPS not fixed"));
+        Serial.print(F("satellite:"));
+        Serial.println(myGPS.getSateNumber());
         delay(3000);
         myGPS.read();
     }
