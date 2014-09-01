@@ -8,7 +8,7 @@
 
 #include "NEMAGPS.h"
 
-GPS::GPS(SoftwareSerial * ts){
+GPS::GPS(SoftwareSerial *ts){
     thisSerial=ts;
     msgBuffer=serialBuffer;
     *head="$GPGGA";
@@ -29,33 +29,50 @@ GPS::GPS(){
     *(head+3)="$GPVTG";
     //i'm chinese
     timezone=8;
-    isValid=1;
+    isValid=0;
 }
 
+/*return 0 indicates success
+note: this is a "semi-blocking" function. If there is no data in the buffer,
+ function returns;however,if there is data,the function blocks until
+ the whole sentence is read. It waits till the GPS complete the session,most time is wasted. Receiving a sentence typically cost 20-100milliseconds,depending on the sentence type
+ 
+ */
 int GPS::read(){
-  //this need to be run at a high frequency, for the buffer length of SoftwareSerial port is only 64 bytes, which is relativly short since NEMA sentence is about 100 bytes
-    
+  //this need to be run at a high frequency, for the buffer length of SoftwareSerial port is only 64 bytes, which is relativly short since NEMA sentence is about 100 bytes---i take this back
     if (thisSerial==NULL) {
         return -2;
     }
+    
     if (!thisSerial->available()) {
         return -1;
-    }
-            
-            
-    //potential bug
-    if (thisSerial->peek()!='$') {
-        flushSerial();
-    }
-            
+    } else
+    
+    {
     int i=0;
-    while (thisSerial->available()) {
-        *(msgBuffer+i)=thisSerial->read();
-        i++;
+    
+    //this part of the function is blocking
+    while (1) {
+        if(thisSerial->available()){
+            *(msgBuffer+i)=thisSerial->read();
+            
+            //actual ending is <CR> <LF> i.e. 13 10,this indicates the end of a sentence
+            if (*(msgBuffer+i)==10) {
+                *(msgBuffer+i)='\0';
+                break;
+            }
+            i++;
+        }
+        
     }
     
-    parseData();
     
+    
+}
+
+
+    parseData();
+
     return 0;
 }
 

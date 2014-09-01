@@ -60,7 +60,7 @@ public:
     double getHorizontalDilution();
     double getVerticalDilution();
 
-private:
+//private:
     int parseGGA();//0
     int parseGSA();//1
     int parseRMC();//2
