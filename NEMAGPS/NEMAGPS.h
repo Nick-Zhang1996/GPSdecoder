@@ -23,7 +23,7 @@
 class GPS {
     
 public:
-    GPS(SoftwareSerial *ts);
+    GPS(Stream *ts);
     GPS();
     
     int read();
@@ -80,7 +80,7 @@ public:
     char* msgBuffer;
     const char* head[4];
     char serialBuffer[120];
-    SoftwareSerial *thisSerial;
+    Stream *thisSerial;
     
     //for RMC
     //UTC time

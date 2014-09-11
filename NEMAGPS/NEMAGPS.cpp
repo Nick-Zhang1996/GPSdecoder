@@ -8,7 +8,7 @@
 
 #include "NEMAGPS.h"
 
-GPS::GPS(SoftwareSerial *ts){
+GPS::GPS(Stream *ts){
     thisSerial=ts;
     msgBuffer=serialBuffer;
     *head="$GPGGA";
