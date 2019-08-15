@@ -21,4 +21,4 @@ VTG(partially supported)
 other sentences will not be supported, because my GPS doesn’t feature them :)
 contact me if you find a bug or have and need or advice
 
-email:zhangzyhack@126.com
+
