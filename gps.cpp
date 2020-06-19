@@ -6,7 +6,7 @@
 //  Copyright (c) 2014年 Nick Zhang. All rights reserved.
 //
 
-#include "NEMAGPS.h"
+#include "gps.h"
 
 GPS::GPS(Stream *ts){
     thisSerial=ts;
@@ -42,11 +42,13 @@ int GPS::read(){
 
     // 0x24 = $, NEMA message sync byte
     if (sync_byte == 0x24){
-      return readNEMA();
+      readNMEA();
+      return 0;
     }
     // UBX message has two sync bytes
     if (sync_byte == 0xb5 && thisSerial->read() == 0x62){
-      return readUBX();
+      readUBX();
+      return 0;
     }
     
     //unknown message type
@@ -68,6 +70,7 @@ void GPS::readNMEA(){
       i++;
     }
   }
+  Serial.println(msgBuffer);
   parseNMEA();
 }
 
@@ -96,7 +99,7 @@ int GPS::parseGGA(){
     getField(5, msgBuffer, buffer, 15);
     orientation_EW = buffer[0];
     getField(6, msgBuffer, buffer, 15);
-    str2int<uint8_t>(buffer,&quality)
+    str2int<uint8_t>(buffer,&quality);
     getField(7, msgBuffer, buffer, 15);
     str2int<uint8_t>(buffer, &satellite_count);
     getField(8, msgBuffer, buffer, 15);
@@ -433,7 +436,7 @@ char GPS::getNS(){
     return orientation_NS;
 }
 char GPS::getEW(){
-    return oriEW;
+    return orientation_EW;
 }
 
 float GPS::getSpdInKnots(){

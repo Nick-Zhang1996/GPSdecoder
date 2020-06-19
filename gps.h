@@ -14,7 +14,6 @@
 // Core library - IDE-based
 
 #include "Arduino.h"
-#include <SoftwareSerial.h>
 
 #ifndef __NEMA0183parser__NEMAGPS__
 #define __NEMA0183parser__NEMAGPS__
@@ -26,8 +25,9 @@ public:
     GPS(Stream *ts);
     
     int read();
-    int parseData();
-    int parseData(char* thisBuffer);
+    void readNMEA();
+    int parseNMEA();
+    void readUBX();
     
     uint8_t getYear();
     uint8_t getMonth();
