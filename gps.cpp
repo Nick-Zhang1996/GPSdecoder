@@ -11,10 +11,6 @@
 GPS::GPS(Stream *ts){
     thisSerial=ts;
     msgBuffer=serialBuffer;
-    *head="$GPGGA";
-    *(head+1)="$GPGSA";
-    *(head+2)="$GPRMC";
-    *(head+3)="$GPVTG";
     //EST
     timezone=-4;
     is_valid=0;
@@ -31,11 +27,12 @@ note: this is a "semi-blocking" function. If there is no data in the buffer,
  the whole sentence is read. It waits till the GPS complete the session,most time is wasted. Receiving a sentence typically cost 20-100milliseconds,depending on the sentence type
  
  */
-int GPS::read(){
+// return msgbuffer if a valid NMEA sentence is received
+const char* GPS::read(){
   //this need to be run at a high frequency, for the buffer length of SoftwareSerial port is only 64 bytes, which is relativly short since NEMA sentence is about 100 bytes---i take this back
-    if (thisSerial==NULL) { return -2; }
+    if (thisSerial==NULL) { return NULL; }
     
-    if (!thisSerial->available()) { return -1; }
+    if (!thisSerial->available()) { return NULL; }
 
     //check first two bytes (sync byte for message type)
     char sync_byte = thisSerial->read();
@@ -43,16 +40,16 @@ int GPS::read(){
     // 0x24 = $, NEMA message sync byte
     if (sync_byte == 0x24){
       readNMEA();
-      return 0;
+      return (const char*)msgBuffer;
     }
     // UBX message has two sync bytes
     if (sync_byte == 0xb5 && thisSerial->read() == 0x62){
       readUBX();
-      return 0;
+      return NULL;
     }
     
     //unknown message type
-    return -3;
+    return NULL;
 }
 
 void GPS::readNMEA(){
@@ -70,7 +67,7 @@ void GPS::readNMEA(){
       i++;
     }
   }
-  Serial.println(msgBuffer);
+  //Serial.println(msgBuffer);
   parseNMEA();
 }
 
@@ -80,34 +77,49 @@ int GPS::parseGGA(){
     //1 UTC time hhmmss.ss
     getField(1, msgBuffer, buffer, 15);
     //4 is an offset to second field
-    str2float<float>(buffer+4, &second);
-    uint32_t utcTime;
+    time.second = atof(buffer+4);
+    uint32_t utc_time;
     //get the integer part
-    str2int<uint32_t>(buffer, &utcTime);
+    utc_time = atof(buffer);
     //get rid of second field
-    utcTime/=100;
-    minute=utcTime%100;
-    utcTime/=100;
-    hour=utcTime;
+    utc_time/=100;
+    time.minute=utc_time%100;
+    utc_time/=100;
+    time.hour=utc_time;
 
+    int degree=0;
     getField(2, msgBuffer, buffer, 15);
-    str2float<double>(buffer, &lat);
+    lat = atof(buffer+2);
+    lat /= 60.0;
+    degree = atoi(buffer);
+    lat += degree/100;
+
     getField(3, msgBuffer, buffer, 15);
     orientation_NS = buffer[0];
     getField(4, msgBuffer, buffer, 15);
-    str2float<double>(buffer, &lon);
+    lon = atof(buffer+3);
+    lon /= 60.0;
+    degree = atoi(buffer);
+    lon += degree/100;
+
     getField(5, msgBuffer, buffer, 15);
     orientation_EW = buffer[0];
     getField(6, msgBuffer, buffer, 15);
-    str2int<uint8_t>(buffer,&quality);
+    quality = atoi(buffer);
+    if (quality == 1 || quality == 2){
+      is_valid = 1;
+    } else {
+      is_valid = 0;
+    }
+
     getField(7, msgBuffer, buffer, 15);
-    str2int<uint8_t>(buffer, &satellite_count);
+    satellite_count = atoi(buffer);
     getField(8, msgBuffer, buffer, 15);
-    str2float<float>(buffer, &horizontal_dilution);
+    horizontal_dilution = atof(buffer);
     getField(9, msgBuffer, buffer, 15);
-    str2float<float>(buffer, &antenna_altitude);
+    antenna_altitude = atof(buffer);
     getField(11, msgBuffer, buffer, 15);
-    str2float<float>(buffer, &altitude);
+    altitude = atof(buffer);
 
     return 0;
 }
@@ -115,11 +127,11 @@ int GPS::parseGGA(){
 int GPS::parseVTG(){
     char buffer[10];
     getField(1, msgBuffer, buffer, 10);
-    str2float<float>(buffer, &true_course);
+    true_course = atof(buffer);
     getField(3, msgBuffer, buffer, 10);
-    str2float<float>(buffer, &magnetic_course);
+    magnetic_course = atof(buffer);
     getField(7, msgBuffer, buffer, 10);
-    str2float<float>(buffer, &speed_kph);
+    speed_kph = atof(buffer);
     return 0;
 }
 
@@ -203,13 +215,15 @@ int GPS::parseNMEA(){
     char temp[8];
     getField(0, msgBuffer, temp, 8);
     
-    if (strcmp(temp, "GPGGA")) {
+    if (!strcmp(temp, "GNGGA")) {
+        //Serial.println("gga parsing");
         parseGGA();
-    }   else if (strcmp(temp, "GPGSA")){
+    }   else if (!strcmp(temp, "GNGSA")){
         //parseGSA();
-    }   else if (strcmp(temp, "GPRMC")){
+    }   else if (!strcmp(temp, "GNRMC")){
         //parseRMC();
-    }   else if (strcmp(temp, "GPVTG")){
+    }   else if (!strcmp(temp, "GNVTG")){
+        //Serial.println("vtg parsing");
         parseVTG();
     }   else {return 1;}//unknown header
     
@@ -217,22 +231,6 @@ int GPS::parseNMEA(){
     
 }
 
-//1 indicates true;
-int GPS::strcmp(const char* str1,const char* str2){
-    int i=0;
-    while (*(str1+i)!='\0' && *(str2+i)!='\0') {
-        if (*(str1+i)!=*(str2+i)) {
-            return 0;
-        }
-        i++;
-    }
-    
-    if (*(str1+i)!='\0' || *(str2+i)!='\0') {
-        return 0;
-    }
-    
-    return 1;
-}
 //retrive the FIELDth field seperated by ',', store the retrived string in BUFFER_OUT
 //0th field = message ID (GPGGA, etc)
 int GPS::getField(const int field,const char* buffer_in,char* buffer_out,const int o_length){
@@ -292,100 +290,6 @@ int GPS::getCommaPos(const int number,const char* buffer_in,char*& pos){
     return -1;
 }
 
-uint8_t GPS::exp10(int e){
-    if (e<0) { return -1; }
-    
-    uint8_t rval=1;
-    
-    for (int i=0; i<e; i++) {
-        rval=rval*10;
-    }
-    
-    return rval;
-}
-
-//whether the char C is a number or dicimal point
-bool GPS::isLegalFigure(char c){
-    if ((c<='9' && c>='0') || c=='.') {
-        return true;
-    } else {return false;}
-}
-
-int GPS::char2dec(char c){
-    return c-48;
-}
-
-//convert a string to float/double,capable of dealing decimal point
-template <class floatType>
-int GPS::str2float(const char* input,floatType* output){
-    int afterP=0;
-    char* thisFigure=const_cast<char*>(input);
-    floatType inte=0.0;
-    floatType frac=0.0;
-    
-    while (1) {
-        if (*thisFigure=='\0') {
-            break;
-        }
-        if (!isLegalFigure(*thisFigure)) {
-            *output=0;
-            return -1;
-        }
-        
-        if (*thisFigure=='.') {
-            if (afterP) {
-                //there are more than one decimal point!
-                *output=0;
-                return -1;
-            }
-            afterP=1;
-            thisFigure++;
-            continue;
-        }
-        
-        if (afterP) {
-            frac+=static_cast<floatType>(char2dec(*thisFigure))/static_cast<floatType>(exp10(afterP));
-            
-            afterP++;
-        } else {
-            inte=inte*10+char2dec(*thisFigure);
-        }
-        
-        thisFigure++;
-        
-    }
-    
-    *output=inte+frac;
-    return 0;
-    
-}
-
-template <class intType>
-int GPS::str2int(const char* input,intType* output){
-    
-    char* thisFigure=const_cast<char*>(input);
-    intType inte=0;
-    
-    
-    while (1) {
-        //if INPUT contains a decimal point, parse only the integer part
-        if (*thisFigure=='\0'|| *thisFigure=='.') {
-            break;
-        }
-        if (!isLegalFigure(*thisFigure)) {
-            *output=0;
-            return -1;
-        }
-        
-        inte=inte*10+char2dec(*thisFigure);
-        thisFigure++;
-        
-    }
-    
-    *output=inte;
-    return 0;
-}
-
 int GPS::flushSerial(){
     if (thisSerial==NULL) {
         return -1;
@@ -397,26 +301,18 @@ int GPS::flushSerial(){
     }
 }
 
-
-uint8_t GPS::getYear(){
-    return year;
+UTCtime GPS::getUtcTime(){
+    return time;
 }
 
-uint8_t GPS::getMonth(){
-    return month;
+UTCtime GPS::getLocalTime(){
+    UTCtime local_time = time;
+    local_time.hour += 24;
+    local_time.hour += timezone;
+    local_time.hour %= 24;
+    return local_time;
 }
-uint8_t GPS::getDay(){
-    return day;
-}
-uint8_t GPS::getHour(){
-    return hour;
-}
-uint8_t GPS::getMinute(){
-    return minute;
-}
-float GPS::getSecond(){
-    return second;
-}
+
 int GPS::setTimezone(uint8_t offset){
     timezone=offset;
     return 0;

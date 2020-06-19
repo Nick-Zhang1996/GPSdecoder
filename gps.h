@@ -17,25 +17,28 @@
 
 #ifndef __NEMA0183parser__NEMAGPS__
 #define __NEMA0183parser__NEMAGPS__
-
+typedef struct {
+    uint8_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t minute;
+    float second;
+} UTCtime;
 
 class GPS {
     
 public:
     GPS(Stream *ts);
     
-    int read();
+    const char* read();
     void readNMEA();
     int parseNMEA();
     void readUBX();
     
-    uint8_t getYear();
-    uint8_t getMonth();
-    uint8_t getDay();
-    uint8_t getHour();
-    uint8_t getMinute();
-    float getSecond();
     int setTimezone(uint8_t offset);
+    UTCtime GPS::getUtcTime();
+    UTCtime GPS::getLocalTime();
     
     uint8_t isFixed();
     double getLat();
@@ -68,32 +71,16 @@ private:
     
     int getField(int field,const char* buffer_in,char* buffer_out,const int o_length);
     int getCommaPos(const int number,const char* buffer_in,char*& pos);
-    int strcmp(const char* str1,const char* str2);
-
-    template <class floatType>
-    int str2float(const char* input,floatType* output);
-
-    template <class intType>
-    int str2int(const char* input,intType* output);
-
-    inline uint8_t exp10(int);
-    inline int char2dec(char);
-    inline bool isLegalFigure(char);
     inline int flushSerial();
     
     char* msgBuffer;
-    const char* head[4];
     char serialBuffer[120];
     Stream *thisSerial;
     
     //for RMC
     //UTC time
-    uint8_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t minute;
-    float second;
+    //FIXME right now the year,month,date is undefined
+    UTCtime time;
     int timezone;
     
     uint8_t is_valid;

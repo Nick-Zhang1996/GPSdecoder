@@ -1,24 +1,10 @@
 GPSdecoder
 ==========
-This is a class-based library for GPS, it parses NEMA 0183 formatted GPS data.
+This is a class-based library for GPS, it can handle a mixture of NMEA 0183 sentences and UBX formatted data.
 
+The class can parse the following NMEA 0183 sentences
 
-feature added: automatically read from SoftwareSerial
+GGA (time,lat,lon,fix_quality)
+VTG (kph)
 
-Written on: Xcode
-Target platform:Arduino
-Language:C++
-
-
-Currently implemented sentence types are:
-Note: duplicated data is only implemented once in order to save computing source
-
-RMC(full feature)
-GGA(DGPS,GPS position not implemented)
-GSA(partially supported)
-VTG(partially supported)
-
-other sentences will not be supported, because my GPS doesn’t feature them :)
-contact me if you find a bug or have and need or advice
-
-
+Since the default serial rx buffer is only 16 - 64 Bytes and therefore insufficient to contain a complete sentence, you're recommended to modify `HardwareSerial.h` in arduino core to increase the `SERIAL_RX_BUFFER_SIZE`.
