@@ -13,25 +13,31 @@ UTCtime localtime;
 void loop() {
   msg = myGPS.read();
   if(msg){
-      Serial.println(msg);
-      Serial.print(F("GPS satellite no:"));
-      Serial.println(myGPS.getSatelliteCount());
-      Serial.println(myGPS.isFixed()?F("GPS fixed"):F("GPS not fixed"));
-      Serial.print("Lat ");
-      Serial.print(myGPS.getLat(),6);
-      Serial.print(myGPS.getNS());
-      Serial.print('\n');
-  
-      Serial.print("Lon ");
-      Serial.print(myGPS.getLon(),6);
-      Serial.println(myGPS.getEW());
+      if(myGPS.incoming_msg_type==TYPE_UBX){
+        Serial.println("UBX received");
+        myGPS.clearMsg();
+      } else{
+        Serial.print(msg);
+        Serial.print(F("GPS satellite no:"));
+        Serial.println(myGPS.getSatelliteCount());
+        Serial.println(myGPS.isFixed()?F("GPS fixed"):F("GPS not fixed"));
+        Serial.print("Lat ");
+        Serial.print(myGPS.getLat(),6);
+        Serial.print(myGPS.getNS());
+        Serial.print('\n');
+    
+        Serial.print("Lon ");
+        Serial.print(myGPS.getLon(),6);
+        Serial.println(myGPS.getEW());
 
-      Serial.print("time:");
-      localtime = myGPS.getLocalTime();
-      Serial.print(localtime.hour);
-      Serial.print(':');
-      Serial.print(localtime.minute);
-      Serial.print(':');
-      Serial.println(localtime.second);
+        Serial.print("time:");
+        localtime = myGPS.getLocalTime();
+        Serial.print(localtime.hour);
+        Serial.print(':');
+        Serial.print(localtime.minute);
+        Serial.print(':');
+        Serial.println(localtime.second);
+        Serial.println();
+      }
   }
 }

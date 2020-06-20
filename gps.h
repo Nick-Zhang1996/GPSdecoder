@@ -17,6 +17,14 @@
 
 #ifndef __NEMA0183parser__NEMAGPS__
 #define __NEMA0183parser__NEMAGPS__
+
+#define GPS_RX_BUFFER_SIZE 1024
+#define TYPE_NONE 0
+#define TYPE_UBX 1
+#define TYPE_NMEA 2
+
+#define TYPE_GGA 1
+#define TYPE_TVG 2
 typedef struct {
     uint8_t year;
     uint8_t month;
@@ -32,9 +40,9 @@ public:
     GPS(Stream *ts);
     
     const char* read();
-    void readNMEA();
+    const char* readNMEA();
+    const char*  readUBX();
     int parseNMEA();
-    void readUBX();
     
     int setTimezone(uint8_t offset);
     UTCtime GPS::getUtcTime();
@@ -48,7 +56,7 @@ public:
     
     float getSpdInKnots();
     float getSpdInMs();
-    float getSpdInKMh();
+    float getSpdInKph();
     
     float getTrueCourse();
     float getVariation();
@@ -62,6 +70,16 @@ public:
     float getHorizontal_dilution();
     float getVertical_dilution();
 
+    uint8_t getError();
+    uint8_t clearError();
+
+    uint16_t len;
+    uint8_t incoming_msg_type;
+    uint8_t incoming_msg_subtype;
+    inline void clearMsg(){ incoming_msg_type = TYPE_NONE; }
+    inline void debugmsg(const char* msg){return;Serial.println(msg);}
+    //inline void debugmsg(const char* msg){Serial.println(msg);}
+
 private:
     GPS();
     int parseGGA();//0
@@ -73,9 +91,10 @@ private:
     int getCommaPos(const int number,const char* buffer_in,char*& pos);
     inline int flushSerial();
     
-    char* msgBuffer;
-    char serialBuffer[120];
+    uint16_t rx_buffer_index;
+    char rx_buffer[GPS_RX_BUFFER_SIZE];
     Stream *thisSerial;
+    uint8_t error;
     
     //for RMC
     //UTC time
