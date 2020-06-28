@@ -39,6 +39,7 @@ class GPS {
 public:
     GPS(Stream *ts);
     
+    void init();
     const char* read();
     const char* readNMEA();
     const char*  readUBX();
@@ -69,6 +70,7 @@ public:
     float getPosition_dilution();
     float getHorizontal_dilution();
     float getVertical_dilution();
+    float getGeoidalSeparation();
 
     uint8_t getError();
     uint8_t clearError();
@@ -118,8 +120,8 @@ private:
     
     //for GGS
     uint8_t satellite_count;
-    float antenna_altitude;//9
-    float altitude;//11
+    float altitude;
+    float geoidal_separation;
     
     //for VTG
     float speed_kph;

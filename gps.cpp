@@ -20,6 +20,9 @@ GPS::GPS(){
   // an interface must be provided
 }
 
+void GPS::init(){
+}
+
 /*return 0 indicates success
 note: this is a "semi-blocking" function. If there is no data in the buffer,
  function returns;however,if there is data,the function blocks until
@@ -119,6 +122,26 @@ const char*  GPS::readNMEA(){
 }
 
 // GPS fix data
+//  1) Time (UTC)
+//  2) Latitude
+//  3) N or S (North or South)
+//  4) Longitude
+//  5) E or W (East or West)
+//  6) GPS Quality Indicator,
+//  0 - fix not available,
+//  1 - GPS fix,
+//  2 - Differential GPS fix
+//  7) Number of satellites in view, 00 - 12
+//  8) Horizontal Dilution of precision
+//  9) Antenna Altitude above/below mean-sea-level (geoid)
+// 10) Units of antenna altitude, meters
+// 11) Geoidal separation, the difference between the WGS-84 earth
+//  ellipsoid and mean-sea-level (geoid), "-" means mean-sea-level below ellipsoid
+// 12) Units of geoidal separation, meters
+// 13) Age of differential GPS data, time in seconds since last SC104
+//  type 1 or 9 update, null field when DGPS is not used
+// 14) Differential reference station ID, 0000-1023
+// 15) Checksum
 int GPS::parseGGA(){
     char buffer[15];
     //1 UTC time hhmmss.ss
@@ -164,9 +187,9 @@ int GPS::parseGGA(){
     getField(8, rx_buffer, buffer, 15);
     horizontal_dilution = atof(buffer);
     getField(9, rx_buffer, buffer, 15);
-    antenna_altitude = atof(buffer);
-    getField(11, rx_buffer, buffer, 15);
     altitude = atof(buffer);
+    getField(11, rx_buffer, buffer, 15);
+    geoidal_separation = atof(buffer);
     incoming_msg_subtype = TYPE_GGA;
 
     return 0;
@@ -408,11 +431,13 @@ char GPS::getVarEW(){
 uint8_t GPS::getSatelliteCount(){
     return satellite_count;
 }
-float GPS::getAntennaAltitude(){
-    return antenna_altitude;
-}
+
 float GPS::getAltitude(){
     return altitude;
+}
+
+float GPS::getGeoidalSeparation(){
+    return geoidal_separation;
 }
 
 float GPS::getPosition_dilution(){
