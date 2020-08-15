@@ -14,11 +14,13 @@
 // Core library - IDE-based
 
 #include "Arduino.h"
+#define GPS_TIMEOUT_MS 2000
 
 #ifndef __NEMA0183parser__NEMAGPS__
 #define __NEMA0183parser__NEMAGPS__
 
-#define GPS_RX_BUFFER_SIZE 1024
+
+#define GPS_RX_BUFFER_SIZE 256
 #define TYPE_NONE 0
 #define TYPE_UBX 1
 #define TYPE_NMEA 2
@@ -81,6 +83,7 @@ public:
     inline void clearMsg(){ incoming_msg_type = TYPE_NONE; }
     inline void debugmsg(const char* msg){return;Serial.println(msg);}
     //inline void debugmsg(const char* msg){Serial.println(msg);}
+    unsigned long getLastUpdateTimestampMs(){ return last_update_ts;}
 
 private:
     GPS();
@@ -130,6 +133,10 @@ private:
     float position_dilution;
     float horizontal_dilution;
     float vertical_dilution;
+
+
+    // timestamp in millis() of latest update, used for detecting loss of NMEA feed
+    unsigned long last_update_ts;
 };
 
 #endif /* defined(__NEMA0183parser__NEMAGPS__) */

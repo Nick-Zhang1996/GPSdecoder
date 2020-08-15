@@ -31,6 +31,9 @@ note: this is a "semi-blocking" function. If there is no data in the buffer,
  */
 // return msgbuffer if a valid NMEA sentence is received
 const char* GPS::read(){
+    if (millis() > last_update_ts + GPS_TIMEOUT_MS){
+      is_valid = 0;
+    }
   //this need to be run at a high frequency, for the buffer length of SoftwareSerial port is only 64 bytes, which is relativly short since NEMA sentence is about 100 bytes---i take this back
     if (thisSerial==NULL) { return NULL; }
     
@@ -291,6 +294,7 @@ int GPS::parseNMEA(){
     if (!strcmp(temp, "GNGGA")) {
         debugmsg("Parsing GGA");
         parseGGA();
+        last_update_ts = millis();
     }   else if (!strcmp(temp, "GNGSA")){
         //parseGSA();
     }   else if (!strcmp(temp, "GNRMC")){
@@ -396,10 +400,10 @@ uint8_t GPS::isFixed(){
 }
 
 double GPS::getLat(){
-    return lat;
+    return (orientation_NS=='N')?lat:-lat;
 }
 double GPS::getLon(){
-    return lon;
+    return (orientation_EW=='E')?lon:-lon;
 }
 char GPS::getNS(){
     return orientation_NS;
